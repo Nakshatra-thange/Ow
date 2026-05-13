@@ -112,3 +112,121 @@ export const addMember = async(req,res)=>{
         
     }
 }
+export const getBalances = async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      const expenses = await prisma.expense.findMany({
+        where: {
+          groupId: id,
+        },
+  
+        include: {
+          splits: true,
+        },
+      });
+  
+      const balances = {};
+  
+      for (const expense of expenses) {
+        const payer = expense.paidById;
+  
+        if (!balances[payer]) {
+          balances[payer] = 0;
+        }
+  
+        balances[payer] += expense.amount;
+  
+        for (const split of expense.splits) {
+          if (!balances[split.userId]) {
+            balances[split.userId] = 0;
+          }
+  
+          balances[split.userId] -= split.amountOwed;
+        }
+      }
+  
+      const debtors = [];
+      const creditors = [];
+  
+      for (const userId in balances) {
+        const amount = Number(balances[userId].toFixed(2));
+  
+        if (amount < 0) {
+          debtors.push({
+            userId,
+            amount: Math.abs(amount),
+          });
+        } else if (amount > 0) {
+          creditors.push({
+            userId,
+            amount,
+          });
+        }
+      }
+  
+      const settlements = [];
+  
+      let i = 0;
+      let j = 0;
+  
+      while (i < debtors.length && j < creditors.length) {
+        const debtor = debtors[i];
+        const creditor = creditors[j];
+  
+        const settledAmount = Math.min(
+          debtor.amount,
+          creditor.amount
+        );
+  
+        settlements.push({
+          from: debtor.userId,
+          to: creditor.userId,
+          amount: settledAmount,
+        });
+  
+        debtor.amount -= settledAmount;
+        creditor.amount -= settledAmount;
+  
+        if (debtor.amount === 0) i++;
+        if (creditor.amount === 0) j++;
+      }
+  
+      res.json({
+        balances,
+        settlements,
+      });
+    } catch (error) {
+      console.log(error);
+  
+      res.status(500).json({
+        message: "Failed to calculate balances",
+      });
+    }
+  };
+
+  export const deleteExpense = async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      await prisma.expenseSplit.deleteMany({
+        where: {
+          expenseId: id,
+        },
+      });
+  
+      await prisma.expense.delete({
+        where: { id },
+      });
+  
+      res.json({
+        message: "Expense deleted",
+      });
+    } catch (error) {
+      console.log(error);
+  
+      res.status(500).json({
+        message: "Failed to delete expense",
+      });
+    }
+  };
