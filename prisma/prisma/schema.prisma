@@ -1,0 +1,74 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String          @id @default(cuid())
+  name         String          
+  email        String          @unique
+  password     String
+  avartarUrl   String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  groupsCreated Group[]          @relation("GroupCreator")
+  memberships   GroupMember[]
+  expensesPaid  Expense[]        @relation("ExpensePayer")
+  splits        ExpenseSplit[]
+
+
+}
+model Group {
+  id           String         @id @default(cuid())
+  name         String
+  description  String?
+  createdById  String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  creator      User           @relation("GroupCreator", fields: [createdById], references: [id])
+  members      GroupMember[]
+  expenses     Expense[]
+}
+
+model GroupMember {
+  id        String    @id @default(cuid())
+  userId    String
+  groupId   String
+  joinedAt  DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  group     Group     @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, groupId])
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  title       String
+  amount      Float
+  notes       String?
+  groupId     String
+  paidById    String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  group       Group           @relation(fields: [groupId], references: [id])
+  payer       User            @relation("ExpensePayer", fields: [paidById], references: [id])
+  splits      ExpenseSplit[]
+}
+
+model ExpenseSplit {
+  id           String    @id @default(cuid())
+  expenseId    String
+  userId       String
+  amountOwed   Float
+
+  expense      Expense   @relation(fields: [expenseId], references: [id])
+  user         User      @relation(fields: [userId], references: [id])
+}
