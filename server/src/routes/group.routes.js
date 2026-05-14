@@ -1,6 +1,14 @@
 import express from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
+import validate from "../middlewares/validate.middleware.js";
 
+import {
+  createGroupSchema,
+} from "../validators/group.validator.js";
+
+import {
+  createExpenseSchema,
+} from "../validators/expense.validator.js";
 import {
   createGroup,
   getGroup,
@@ -13,13 +21,23 @@ import {
 
 const router = express.Router();
 
-router.post("/", authMiddleware, createGroup);
+router.post(
+  "/",
+  authMiddleware,
+  validate(createGroupSchema),
+  createGroup
+);
 
 router.get("/:id", authMiddleware, getGroup);
 
 router.post("/:id/members", authMiddleware, addMember);
 
-router.post("/:id/expenses", authMiddleware, addExpense);
+router.post(
+  "/:id/expenses",
+  authMiddleware,
+  validate(createExpenseSchema),
+  addExpense
+);
 
 router.get("/:id/expenses", authMiddleware, getExpenses);
 
