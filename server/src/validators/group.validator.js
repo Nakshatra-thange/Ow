@@ -1,27 +1,11 @@
-import {z} from 'zod';
-
 import { z } from "zod";
 
-export const registerSchema = z.object({
+export const createGroupSchema = z.object({
   name: z
     .string()
-    .min(2, "Name must be at least 2 characters"),
+    .min(2, "Group name too short"),
 
-  email: z
+  description: z
     .string()
-    .email("Invalid email"),
-
-  password: z
-    .string()
-    .min(6, "Password must be at least 6 characters"),
-});
-
-export const loginSchema = z.object({
-  email: z
-    .string()
-    .email("Invalid email"),
-
-  password: z
-    .string()
-    .min(6, "Password must be at least 6 characters"),
+    .optional(),
 });
